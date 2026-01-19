@@ -59,9 +59,11 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
   <xacro:arg name="laser_ust10_rear_xyz"      default="$(optenv HUSKY_UST10_SECONDARY_XYZ -0.2206 0.0 0.00635)" />
   <xacro:arg name="laser_ust10_rear_rpy"      default="$(optenv HUSKY_UST10_SECONDARY_RPY 0 0 3.14159)" />
 
-  <!-- Velodyne LiDAR Primary and Secondary -->
-  <xacro:arg name="laser_3d_enabled"              default="$(optenv HUSKY_LASER_3D_ENABLED 0)" />
-  <xacro:arg name="laser_3d_topic"                default="$(optenv HUSKY_LASER_3D_TOPIC points)"/>
+  <!-- Velodyne LiDAR Primary and Secondary, 1 for 16 -->
+  <!-- <xacro:arg name="laser_3d_model_16" default="$(optenv HUSKY_LASER_3D_ENABLED 0)"/> -->
+
+  <xacro:arg name="laser_3d_enabled"              default="$(optenv HUSKY_LASER_3D_ENABLED 1)" />
+  <xacro:arg name="laser_3d_topic"                default="$(optenv HUSKY_LASER_3D_TOPIC velodyne_points)"/>
   <xacro:arg name="laser_3d_tower"                default="$(optenv HUSKY_LASER_3D_TOWER 1)"/>
   <xacro:arg name="laser_3d_prefix"               default="$(optenv HUSKY_LASER_3D_PREFIX )"/>
   <xacro:arg name="laser_3d_parent"               default="$(optenv HUSKY_LASER_3D_PARENT top_plate_link)"/>
@@ -77,7 +79,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
   <xacro:arg name="laser_3d_secondary_rpy"        default="$(optenv HUSKY_LASER_3D_SECONDARY_RPY 0 0 -3.14159)" />
 
   <!-- RealSense Camera Primary and Secondary -->
-  <xacro:arg name="realsense_enabled"             default="$(optenv HUSKY_REALSENSE_ENABLED 1)" />
+  <xacro:arg name="realsense_enabled"             default="$(optenv HUSKY_REALSENSE_ENABLED 0)" />
   <xacro:arg name="realsense_topic"               default="$(optenv HUSKY_REALSENSE_TOPIC realsense)" />
   <xacro:arg name="realsense_prefix"              default="$(optenv HUSKY_REALSENSE_PREFIX camera)" />
   <xacro:arg name="realsense_parent"              default="$(optenv HUSKY_REALSENSE_PARENT top_plate_link)" />
@@ -132,6 +134,9 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
   <xacro:include filename="$(find husky_description)/urdf/accessories/vlp16_mount.urdf.xacro"/>
   <xacro:include filename="$(find husky_description)/urdf/decorations.urdf.xacro" />
   <xacro:include filename="$(find husky_description)/urdf/wheel.urdf.xacro" />
+
+  <!-- <xacro:include filename="$(find husky_description)/urdf/accessories/hdl32_mount.urdf.xacro" /> -->
+
 
   <xacro:property name="M_PI" value="3.14159"/>
 
@@ -315,20 +320,66 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
   </xacro:if>
 
   <!--
-    Velodyne 3D LiDAR Primary and Secondary
+  Velodyne 3D LiDAR Primary and Secondary
   -->
+  <xacro:arg name="gpu" default="false"/>
+  <xacro:property name="gpu" value="$(arg gpu)" />
+  <xacro:include filename="$(find velodyne_description)/urdf/HDL-32E.urdf.xacro"/>
+  <xacro:HDL-32E parent="base_link" name="velodyne2" topic="/velodyne_points2" hz="10" samples="220" gpu="${gpu}">
+    <origin xyz="0 0 0.6" rpy="0 0 0" />
+  </xacro:HDL-32E>
+
   <xacro:if value="$(arg laser_3d_enabled)">
+
+  <!-- ================= VLP-16 ================= -->
+  <!-- <xacro:if value="$(arg laser_3d_model_16)"> -->
+
     <xacro:if value="$(arg laser_3d_tower)">
-      <xacro:vlp16_mount prefix="$(arg laser_3d_prefix)" parent_link="$(arg laser_3d_parent)" topic="$(arg laser_3d_topic)">
+      <xacro:vlp16_mount
+        prefix="$(arg laser_3d_prefix)"
+        parent_link="$(arg laser_3d_parent)"
+        topic="$(arg laser_3d_topic)">
         <origin xyz="$(arg laser_3d_xyz)" rpy="$(arg laser_3d_rpy)" />
       </xacro:vlp16_mount>
     </xacro:if>
+
     <xacro:unless value="$(arg laser_3d_tower)">
-      <xacro:VLP-16 parent="$(arg laser_3d_parent)" topic="$(arg laser_3d_topic)" name="$(arg laser_3d_prefix)velodyne">
+      <xacro:VLP-16
+        parent="$(arg laser_3d_parent)"
+        topic="$(arg laser_3d_topic)"
+        name="$(arg laser_3d_prefix)velodyne">
         <origin xyz="$(arg laser_3d_xyz)" rpy="$(arg laser_3d_rpy)" />
       </xacro:VLP-16>
     </xacro:unless>
+
   </xacro:if>
+
+    <!-- ================= HDL-32E ================= -->
+    <!-- <xacro:unless value="$(arg laser_3d_model_16)">
+
+      <xacro:if value="$(arg laser_3d_tower)">
+        <xacro:HDL-32E
+          prefix="$(arg laser_3d_prefix)"
+          parent_link="$(arg laser_3d_parent)"
+          topic="$(arg laser_3d_topic)">
+          <origin xyz="$(arg laser_3d_xyz)" rpy="$(arg laser_3d_rpy)" />
+        </xacro:HDL-32E>
+      </xacro:if>
+
+      <xacro:unless value="$(arg laser_3d_tower)">
+        <xacro:HDL-32E
+          parent="$(arg laser_3d_parent)"
+          topic="$(arg laser_3d_topic)"
+          name="$(arg laser_3d_prefix)velodyne">
+          <origin xyz="$(arg laser_3d_xyz)" rpy="$(arg laser_3d_rpy)" />
+        </xacro:HDL-32E>
+      </xacro:unless>
+
+    </xacro:unless>
+
+  </xacro:if> -->
+
+
 
   <gazebo>
     <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
